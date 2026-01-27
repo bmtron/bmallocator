@@ -1,0 +1,47 @@
+CC = gcc
+CFLAGS = -Wall -Wextra -std=c11 -g
+LDFLAGS = -lSDL2 -lSDL2_image
+
+ASAN_FLAGS = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer
+ASAN_ENV = ASAN_OPTIONS=detect_leaks=1:symbolize=1
+
+BINDIR := bin
+OBJDIR := obj
+SRCDIR := src
+
+TARGET := $(BINDIR)/bmalloc
+SRCS := $(wildcard $(SRCDIR)/*.c $(SRCDIR)/**/*.c)
+OBJS := $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRCS))
+
+all: $(TARGET)
+
+debug: CFLAGS += $(ASAN_FLAGS)
+debug: LDFLAGS += $(ASAN_FLAGS)
+debug: $(TARGET)
+
+release: CFLAGS += -O2
+release: $(TARGET)
+
+$(TARGET): $(OBJS) | $(BINDIR)
+	$(CC) $(CFLAGS) -o $@ $^
+
+$(OBJDIR)/%.o: $(SRCDIR)/%.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
+
+$(BINDIR):
+	mkdir -p $(BINDIR)
+
+run: debug
+	$(ASAN_ENV) ./$(TARGET)
+
+gdb: debug
+	gdb ./$(TARGET)
+
+clean:
+	rm -rf $(OBJDIR) $(BINDIR)
+
+.PHONY: all debug release run gdb clean
