@@ -3,6 +3,8 @@
 #include "bmalloc.h"
 
 #include <errno.h>
+#include <string.h>
+#include <sys/param.h>
 #include <unistd.h>
 
 static block_header_t* free_list_head = NULL;
@@ -87,4 +89,35 @@ void bfree(void* ptr) {
         metadata->is_free = 1;
 
         return;
+}
+
+void* brealloc(void* ptr, size_t size) {
+        if (ptr == NULL) {
+                return bmalloc(size);
+        }
+
+        if (size == 0) {
+                bfree(ptr);
+                return NULL;
+        }
+
+        block_header_t* old_metadata =
+            (block_header_t*)((char*)ptr - sizeof(block_header_t));
+
+        size_t aligned_size = ALIGN(size);
+        if (aligned_size <= old_metadata->size) {
+                return ptr;
+        }
+
+        void* new_data = bmalloc(size);
+        if (new_data == NULL) {
+                return NULL;
+        }
+
+        size_t copy_size = MIN(aligned_size, old_metadata->size);
+
+        memcpy(new_data, ptr, copy_size);
+
+        bfree(ptr);
+        return new_data;
 }

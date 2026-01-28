@@ -1,6 +1,6 @@
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include <errno.h>
 
 #include "bmalloc.h"
 
@@ -41,6 +41,20 @@ int main(int argc, char** argv) {
                 perror("bfree");
                 printf("PASS: successfully set errno on doublefree\n");
         }
+
+        printf("Test 3: Realloc\n");
+
+        char* ptr3 = bmalloc(100);
+        if (ptr3 == NULL) {
+                printf("FAIL: allocation returned NULL\n");
+                return 1;
+        }
+
+        strcpy(ptr3, "Hello, for the third time\n");
+        ptr3 = brealloc(ptr3, 250);
+
+        printf("PASS: wrote, reallocated, and read: %s\n", ptr3);
+        bfree(ptr3);
 
         return 0;
 }
