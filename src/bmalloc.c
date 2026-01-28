@@ -2,6 +2,7 @@
 
 #include "bmalloc.h"
 
+#include <errno.h>
 #include <unistd.h>
 
 static block_header_t* free_list_head = NULL;
@@ -18,7 +19,7 @@ void init_heap() {
         heap = (heap_t*)heap_start;
 
         heap->total_size = initial_size;
-        heap->free_space_start = heap_start;
+        heap->free_space_start = (char*)heap_start + sizeof(heap_t);
         heap->free_space_remaining = initial_size;
         heap->blocks = free_list_head;
 }
@@ -46,7 +47,7 @@ void* bmalloc(size_t size) {
         while (heap->free_space_remaining <
                aligned_size + sizeof(block_header_t)) {
                 size_t new_chunk_size = HEAP_CHUNK_SIZE;
-                void* new_heap_data = (void*)sbrk(new_chunk_size);
+                void* new_heap_data = sbrk(new_chunk_size);
                 if (new_heap_data == (void*)-1) {
                         return NULL;
                 }
@@ -78,6 +79,7 @@ void bfree(void* ptr) {
             (block_header_t*)((char*)ptr - sizeof(block_header_t));
         if (metadata->magic == MAGIC_FREED || metadata->magic == MAGIC_FREE) {
                 // probably do more extensive error handling here
+                errno = EINVAL;
                 return;
         }
 
